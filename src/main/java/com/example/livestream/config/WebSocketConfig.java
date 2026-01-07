@@ -2,9 +2,8 @@ package com.example.livestream.config;
 
 
 import com.example.livestream.websocket.SignallingWebSocketHandler;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.example.livestream.websocket.ChannelSocketHandler;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
@@ -15,9 +14,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
 
 
     private final SignallingWebSocketHandler handler;
+    private final ChannelSocketHandler channelhandler;
 
-    public WebSocketConfig(SignallingWebSocketHandler handler) {
+    public WebSocketConfig(SignallingWebSocketHandler handler, ChannelSocketHandler channelhandler) {
         this.handler = handler;
+        this.channelhandler=channelhandler;
     }
 
     @Override
@@ -26,5 +27,8 @@ public class WebSocketConfig implements WebSocketConfigurer {
         registry
                 .addHandler(handler,"/ws/signalling")
                         .setAllowedOrigins("*");
+
+        registry.addHandler(channelhandler,"ws/channel")
+                .setAllowedOrigins("*");
     }
 }

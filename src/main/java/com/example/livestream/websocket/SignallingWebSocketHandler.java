@@ -15,6 +15,8 @@ public class SignallingWebSocketHandler extends TextWebSocketHandler {
         // Handle new WebSocket connection
 
         System.out.println("WebSocket Connection Established Successfully:" + session.getId());
+        session.sendMessage(new TextMessage("echo:Connection Successfull from backened"));
+
     }
 
     @Override
@@ -23,6 +25,7 @@ public class SignallingWebSocketHandler extends TextWebSocketHandler {
         System.out.println("Received message: " + message.getPayload() + " from session: " + session.getId());
 
         // Echo the message back to the client
+        session.sendMessage(new TextMessage("Echo: " + message.getPayload()));
     }
 
     @Override
@@ -30,4 +33,5 @@ public class SignallingWebSocketHandler extends TextWebSocketHandler {
         // Handle connection closed
         System.out.println("WebSocket Connection Closed: " + session.getId());
     }
+
 }
