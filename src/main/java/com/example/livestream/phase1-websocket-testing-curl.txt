@@ -1,0 +1,183 @@
+
+
+
+
+
+
+Phase 1 Goals:
+
+
+📄 Phase 1 – Channel & WebSocket Testing Document
+🎯 Objective
+
+To verify that:
+
+WebSocket connections work
+
+JOIN / LEAVE messages work
+
+Viewer limit is enforced
+
+Channel state is correctly broadcast
+
+Redis state is updated correctly
+
+🧱 Prerequisites Checklist
+
+Before testing, ensure:
+
+✅ Spring Boot application is running
+✅ Redis is running (Docker or local)
+✅ ChannelService implemented
+✅ ChannelWebSocketHandler registered
+✅ WebSocket endpoint /ws/channel exists
+
+
+
+====================================================
+PHASE 1 – WEBSOCKET + REDIS TESTING (CURL ONLY)
+====================================================
+
+Backend:
+---------
+Spring Boot running on http://localhost:8080
+WebSocket endpoint: ws://localhost:8080/ws/channel
+Redis running locally
+
+----------------------------------------------------
+STEP 0 – VERIFY REDIS
+----------------------------------------------------
+
+redis-cli
+PING
+
+Expected:
+PONG
+
+
+----------------------------------------------------
+STEP 1 – CONNECT TO WEBSOCKET
+----------------------------------------------------
+
+Open a terminal and run:
+
+curl --no-buffer \
+     --ws ws://localhost:8080/ws/channel
+
+Expected backend log:
+Channel WebSocket Connected: <session-id>
+
+Terminal stays open waiting for messages.
+
+
+----------------------------------------------------
+STEP 2 – JOIN CHANNEL (Viewer 1)
+----------------------------------------------------
+
+In the SAME terminal, type and press ENTER:
+
+{
+  "type": "JOIN",
+  "channelId": 1,
+  "userId": "user1"
+}
+
+Expected response from server:
+
+{
+  "type": "STATE_UPDATE",
+  "channelId": 1,
+  "userId": null,
+  "payload": {
+    "live": "true",
+    "viewers": "1",
+    "streamerId": "user1"
+  }
+}
+
+Redis check (new terminal):
+
+redis-cli
+HGETALL channel:1
+
+
+----------------------------------------------------
+STEP 3 – MULTIPLE VIEWERS
+----------------------------------------------------
+
+Open ANOTHER terminal:
+
+curl --no-buffer \
+     --ws ws://localhost:8080/ws/channel
+
+Send:
+
+{
+  "type": "JOIN",
+  "channelId": 1,
+  "userId": "user2"
+}
+
+Expected:
+- Viewer count increases
+- STATE_UPDATE received in BOTH terminals
+
+
+----------------------------------------------------
+STEP 4 – VIEWER LIMIT TEST
+----------------------------------------------------
+
+Repeat JOIN until MAX_VIEWERS reached (e.g. 15)
+
+Attempt extra JOIN:
+
+{
+  "type": "JOIN",
+  "channelId": 1,
+  "userId": "user16"
+}
+
+Expected ERROR:
+
+{
+  "type": "ERROR",
+  "channelId": 1,
+  "userId": "user16",
+  "payload": "Channel full"
+}
+
+Redis viewer count must NOT increase.
+
+
+----------------------------------------------------
+STEP 5 – LEAVE CHANNEL
+----------------------------------------------------
+
+Send from any connected terminal:
+
+{
+  "type": "LEAVE",
+  "channelId": 1,
+  "userId": "user2"
+}
+
+Expected:
+- Viewer count decremented
+- STATE_UPDATE broadcast to all connections
+
+
+----------------------------------------------------
+STEP 6 – ABRUPT DISCONNECT TEST
+----------------------------------------------------
+
+Press CTRL + C in one curl terminal
+(do NOT send LEAVE)
+
+Expected:
+- afterConnectionClosed() triggered
+- Viewer count decremented
+- Redis state remains consistent
+
+====================================================
+PHASE 1 TESTING COMPLETE
+====================================================
